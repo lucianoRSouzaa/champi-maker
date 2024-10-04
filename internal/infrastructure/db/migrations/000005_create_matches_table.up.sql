@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS matches (
     phase INTEGER NOT NULL DEFAULT 1,
     parent_match_id UUID REFERENCES matches(id),
     left_child_match_id UUID REFERENCES matches(id),
-    right_child_match_id UUID REFERENCES matches(id);
+    right_child_match_id UUID REFERENCES matches(id)
 );
 
 CREATE INDEX idx_matches_championship_id ON matches(championship_id);
