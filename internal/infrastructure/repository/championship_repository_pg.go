@@ -22,8 +22,8 @@ func NewChampionshipRepositoryPg(pool *pgxpool.Pool) repository.ChampionshipRepo
 
 func (r *championshipRepositoryPg) Create(ctx context.Context, championship *entity.Championship) error {
 	query := `
-        INSERT INTO championships (id, name, type, tiebreaker_method, progression_type, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        INSERT INTO championships (id, name, type, tiebreaker_method, progression_type, phases, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `
 	_, err := r.pool.Exec(ctx, query,
 		championship.ID,
@@ -31,6 +31,7 @@ func (r *championshipRepositoryPg) Create(ctx context.Context, championship *ent
 		string(championship.Type),
 		string(championship.TiebreakerMethod),
 		string(championship.ProgressionType),
+		championship.Phases,
 		championship.CreatedAt,
 		championship.UpdatedAt,
 	)
@@ -39,7 +40,7 @@ func (r *championshipRepositoryPg) Create(ctx context.Context, championship *ent
 
 func (r *championshipRepositoryPg) GetByID(ctx context.Context, id uuid.UUID) (*entity.Championship, error) {
 	query := `
-        SELECT id, name, type, tiebreaker_method, progression_type, created_at, updated_at
+        SELECT id, name, type, tiebreaker_method, progression_type, phases, created_at, updated_at
         FROM championships
         WHERE id = $1
     `
@@ -54,6 +55,7 @@ func (r *championshipRepositoryPg) GetByID(ctx context.Context, id uuid.UUID) (*
 		&typeStr,
 		&tiebreakerMethodStr,
 		&progressionTypeStr,
+		&championship.Phases,
 		&championship.CreatedAt,
 		&championship.UpdatedAt,
 	)
@@ -120,7 +122,7 @@ func (r *championshipRepositoryPg) Delete(ctx context.Context, id uuid.UUID) err
 
 func (r *championshipRepositoryPg) List(ctx context.Context) ([]*entity.Championship, error) {
 	query := `
-        SELECT id, name, type, tiebreaker_method, progression_type, created_at, updated_at
+        SELECT id, name, type, tiebreaker_method, progression_type, phases, created_at, updated_at
         FROM championships
         ORDER BY created_at DESC
     `
@@ -142,6 +144,7 @@ func (r *championshipRepositoryPg) List(ctx context.Context) ([]*entity.Champion
 			&typeStr,
 			&tiebreakerMethodStr,
 			&progressionTypeStr,
+			&championship.Phases,
 			&championship.CreatedAt,
 			&championship.UpdatedAt,
 		)
