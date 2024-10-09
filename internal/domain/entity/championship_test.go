@@ -16,6 +16,7 @@ func TestChampionshipValidation_Success(t *testing.T) {
 		Type:             ChampionshipTypeLeague,
 		TiebreakerMethod: TiebreakerPenalties,
 		ProgressionType:  ProgressionFixed,
+		Phases:           1,
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),
 	}
@@ -121,6 +122,7 @@ func TestChampionshipValidation_MissingCreatedAt(t *testing.T) {
 		Type:             ChampionshipTypeLeague,
 		TiebreakerMethod: TiebreakerPenalties,
 		ProgressionType:  ProgressionFixed,
+		Phases:           1,
 		// CreatedAt ausente
 		UpdatedAt: time.Now(),
 	}
@@ -138,6 +140,7 @@ func TestChampionshipValidation_MissingUpdatedAt(t *testing.T) {
 		Name:             "Campeonato Brasileiro",
 		Type:             ChampionshipTypeLeague,
 		TiebreakerMethod: TiebreakerPenalties,
+		Phases:           1,
 		ProgressionType:  ProgressionFixed,
 		CreatedAt:        time.Now(),
 		// UpdatedAt ausente
@@ -254,12 +257,13 @@ func TestChampionshipValidation_MultipleErrors(t *testing.T) {
 		ProgressionType:  "invalid",   // Valor inválido
 		CreatedAt:        time.Time{}, // Ausente (zero value)
 		UpdatedAt:        time.Time{}, // Ausente (zero value)
+		Phases:           -2,          // Valor inválido
 	}
 
 	err := championship.Validate()
 	assert.Error(t, err)
 	validationErrors := err.(validator.ValidationErrors)
-	assert.Len(t, validationErrors, 7)
+	assert.Len(t, validationErrors, 8)
 
 	fieldsWithErrors := map[string]string{}
 	for _, fieldErr := range validationErrors {
@@ -274,6 +278,7 @@ func TestChampionshipValidation_MultipleErrors(t *testing.T) {
 		"ProgressionType":  "oneof",
 		"CreatedAt":        "required",
 		"UpdatedAt":        "required",
+		"Phases":           "gte",
 	}
 
 	// Pode haver pequenas diferenças na ordem ou número de erros
