@@ -44,6 +44,8 @@ func teardownTestDB(t *testing.T, pool *pgxpool.Pool) {
 	require.NoError(t, err)
 	_, err = pool.Exec(ctx, "TRUNCATE TABLE matches CASCADE")
 	require.NoError(t, err)
+	_, err = pool.Exec(ctx, "TRUNCATE TABLE statistics CASCADE")
+	require.NoError(t, err)
 }
 
 func TestChampionshipRepositoryPg_CreateAndGetByID(t *testing.T) {
