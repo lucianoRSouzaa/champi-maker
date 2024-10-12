@@ -3,8 +3,8 @@ CREATE TYPE match_status AS ENUM ('scheduled', 'in_progress', 'finished');
 CREATE TABLE IF NOT EXISTS matches (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     championship_id UUID NOT NULL REFERENCES championships(id) ON DELETE CASCADE,
-    home_team_id UUID NOT NULL REFERENCES teams(id),
-    away_team_id UUID NOT NULL REFERENCES teams(id),
+    home_team_id UUID REFERENCES teams(id),
+    away_team_id UUID REFERENCES teams(id),
     match_date TIMESTAMP WITH TIME ZONE,
     status match_status NOT NULL DEFAULT 'scheduled',
     score_home INTEGER DEFAULT 0,
@@ -19,9 +19,9 @@ CREATE TABLE IF NOT EXISTS matches (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     phase INTEGER NOT NULL DEFAULT 1,
-    parent_match_id UUID REFERENCES matches(id),
-    left_child_match_id UUID REFERENCES matches(id),
-    right_child_match_id UUID REFERENCES matches(id)
+    parent_match_id UUID REFERENCES matches(id) DEFERRABLE INITIALLY DEFERRED,
+    left_child_match_id UUID REFERENCES matches(id) DEFERRABLE INITIALLY DEFERRED,
+    right_child_match_id UUID REFERENCES matches(id) DEFERRABLE INITIALLY DEFERRED
 );
 
 CREATE INDEX idx_matches_championship_id ON matches(championship_id);
