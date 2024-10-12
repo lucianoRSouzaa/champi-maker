@@ -28,7 +28,7 @@ type Championship struct {
 	Type             ChampionshipType `json:"type" validate:"required,oneof=league cup"`
 	TiebreakerMethod TiebreakerMethod `json:"tiebreaker_method" validate:"required,oneof=penalties extra_time"`
 	ProgressionType  ProgressionType  `json:"progression_type" validate:"required,oneof=fixed random_draw"`
-	Phases           int              `json:"phases" validate:"required,gte=1"`
+	Phases           int              `json:"phases"`
 	CreatedAt        time.Time        `json:"created_at" validate:"required"`
 	UpdatedAt        time.Time        `json:"updated_at" validate:"required"`
 }

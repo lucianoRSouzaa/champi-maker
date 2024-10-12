@@ -257,13 +257,12 @@ func TestChampionshipValidation_MultipleErrors(t *testing.T) {
 		ProgressionType:  "invalid",   // Valor inválido
 		CreatedAt:        time.Time{}, // Ausente (zero value)
 		UpdatedAt:        time.Time{}, // Ausente (zero value)
-		Phases:           -2,          // Valor inválido
 	}
 
 	err := championship.Validate()
 	assert.Error(t, err)
 	validationErrors := err.(validator.ValidationErrors)
-	assert.Len(t, validationErrors, 8)
+	assert.Len(t, validationErrors, 7)
 
 	fieldsWithErrors := map[string]string{}
 	for _, fieldErr := range validationErrors {
@@ -278,7 +277,6 @@ func TestChampionshipValidation_MultipleErrors(t *testing.T) {
 		"ProgressionType":  "oneof",
 		"CreatedAt":        "required",
 		"UpdatedAt":        "required",
-		"Phases":           "gte",
 	}
 
 	// Pode haver pequenas diferenças na ordem ou número de erros

@@ -62,7 +62,6 @@ func TestChampionshipRepositoryPg_CreateAndGetByID(t *testing.T) {
 		Name:             "Campeonato Teste",
 		Type:             entity.ChampionshipTypeCup,
 		TiebreakerMethod: entity.TiebreakerPenalties,
-		Phases:           3,
 		ProgressionType:  entity.ProgressionFixed,
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),

@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS championships (
     tiebreaker_method tiebreaker_method NOT NULL DEFAULT 'penalties',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    phases INTEGER NOT NULL,
+    phases INTEGER NULL,
     progression_type progression_type NOT NULL DEFAULT 'fixed'
 );
 
