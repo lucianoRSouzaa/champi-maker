@@ -286,3 +286,48 @@ func (r *matchRepositoryPg) GetByPhase(ctx context.Context, championshipID uuid.
 
 	return matches, nil
 }
+
+func (r *matchRepositoryPg) BeginTx(ctx context.Context) (pgx.Tx, error) {
+	return r.pool.Begin(ctx)
+}
+
+func (r *matchRepositoryPg) CreateWithTx(ctx context.Context, tx pgx.Tx, match *entity.Match) error {
+	query := `
+        INSERT INTO matches (
+            id, championship_id, home_team_id, away_team_id, match_date, status,
+            score_home, score_away, has_extra_time, score_home_extra_time, score_away_extra_time,
+            has_penalties, score_home_penalties, score_away_penalties, winner_team_id,
+            created_at, updated_at, phase, parent_match_id, left_child_match_id, right_child_match_id
+        )
+        VALUES (
+            $1, $2, $3, $4, $5, $6,
+            $7, $8, $9, $10, $11,
+            $12, $13, $14, $15,
+            $16, $17, $18, $19, $20, $21
+        )
+    `
+	_, err := tx.Exec(ctx, query,
+		match.ID,
+		match.ChampionshipID,
+		match.HomeTeamID,
+		match.AwayTeamID,
+		match.MatchDate,
+		match.Status,
+		match.ScoreHome,
+		match.ScoreAway,
+		match.HasExtraTime,
+		match.ScoreHomeExtraTime,
+		match.ScoreAwayExtraTime,
+		match.HasPenalties,
+		match.ScoreHomePenalties,
+		match.ScoreAwayPenalties,
+		match.WinnerTeamID,
+		match.CreatedAt,
+		match.UpdatedAt,
+		match.Phase,
+		match.ParentMatchID,
+		match.LeftChildMatchID,
+		match.RightChildMatchID,
+	)
+	return err
+}
