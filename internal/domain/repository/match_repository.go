@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 type MatchRepository interface {
@@ -14,4 +15,6 @@ type MatchRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetByChampionshipID(ctx context.Context, championshipID uuid.UUID) ([]*entity.Match, error)
 	GetByPhase(ctx context.Context, championshipID uuid.UUID, phase int) ([]*entity.Match, error)
+	BeginTx(ctx context.Context) (pgx.Tx, error)
+	CreateWithTx(ctx context.Context, tx pgx.Tx, match *entity.Match) error
 }
