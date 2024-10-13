@@ -13,7 +13,10 @@ import (
 
 type ChampionshipService interface {
 	CreateChampionship(ctx context.Context, championship *entity.Championship, teamIDs []uuid.UUID) error
-	// Outros métodos conforme necessário
+	GetChampionshipByID(ctx context.Context, id uuid.UUID) (*entity.Championship, error)
+	UpdateChampionship(ctx context.Context, championship *entity.Championship) error
+	DeleteChampionship(ctx context.Context, id uuid.UUID) error
+	ListChampionships(ctx context.Context) ([]*entity.Championship, error)
 }
 
 type championshipService struct {
@@ -66,4 +69,63 @@ func (s *championshipService) CreateChampionship(ctx context.Context, championsh
 	}
 
 	return nil
+}
+
+func (s *championshipService) GetChampionshipByID(ctx context.Context, id uuid.UUID) (*entity.Championship, error) {
+	championship, err := s.championshipRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if championship == nil {
+		return nil, fmt.Errorf("championship with ID %s not found", id)
+	}
+	return championship, nil
+}
+
+func (s *championshipService) UpdateChampionship(ctx context.Context, championship *entity.Championship) error {
+	if err := championship.Validate(); err != nil {
+		return err
+	}
+
+	existingChampionship, err := s.championshipRepo.GetByID(ctx, championship.ID)
+	if err != nil {
+		return err
+	}
+	if existingChampionship == nil {
+		return fmt.Errorf("championship with ID %s not found", championship.ID)
+	}
+
+	// Atualizar os timestamps
+	championship.UpdatedAt = time.Now()
+
+	// Salvar o campeonato no banco de dados
+	if err := s.championshipRepo.Update(ctx, championship); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *championshipService) DeleteChampionship(ctx context.Context, id uuid.UUID) error {
+	existingChampionship, err := s.championshipRepo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if existingChampionship == nil {
+		return fmt.Errorf("championship with ID %s not found", id)
+	}
+
+	if err := s.championshipRepo.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *championshipService) ListChampionships(ctx context.Context) ([]*entity.Championship, error) {
+	championships, err := s.championshipRepo.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return championships, nil
 }
