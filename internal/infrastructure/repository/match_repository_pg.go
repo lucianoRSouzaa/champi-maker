@@ -331,3 +331,102 @@ func (r *matchRepositoryPg) CreateWithTx(ctx context.Context, tx pgx.Tx, match *
 	)
 	return err
 }
+
+func (r *matchRepositoryPg) GetByIDWithTx(ctx context.Context, tx pgx.Tx, id uuid.UUID) (*entity.Match, error) {
+	query := `
+		SELECT
+			id, championship_id, home_team_id, away_team_id, match_date, status,
+			score_home, score_away, has_extra_time, score_home_extra_time,
+			score_away_extra_time, has_penalties, score_home_penalties,
+			score_away_penalties, winner_team_id, phase, parent_match_id,
+			left_child_match_id, right_child_match_id, created_at, updated_at
+		FROM matches
+		WHERE id = $1
+	`
+	row := tx.QueryRow(ctx, query, id)
+
+	var match entity.Match
+	err := row.Scan(
+		&match.ID,
+		&match.ChampionshipID,
+		&match.HomeTeamID,
+		&match.AwayTeamID,
+		&match.MatchDate,
+		&match.Status,
+		&match.ScoreHome,
+		&match.ScoreAway,
+		&match.HasExtraTime,
+		&match.ScoreHomeExtraTime,
+		&match.ScoreAwayExtraTime,
+		&match.HasPenalties,
+		&match.ScoreHomePenalties,
+		&match.ScoreAwayPenalties,
+		&match.WinnerTeamID,
+		&match.Phase,
+		&match.ParentMatchID,
+		&match.LeftChildMatchID,
+		&match.RightChildMatchID,
+		&match.CreatedAt,
+		&match.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &match, nil
+}
+
+func (r *matchRepositoryPg) UpdateWithTx(ctx context.Context, tx pgx.Tx, match *entity.Match) error {
+	query := `
+		UPDATE matches SET
+			home_team_id = $1,
+			away_team_id = $2,
+			match_date = $3,
+			status = $4,
+			score_home = $5,
+			score_away = $6,
+			has_extra_time = $7,
+			score_home_extra_time = $8,
+			score_away_extra_time = $9,
+			has_penalties = $10,
+			score_home_penalties = $11,
+			score_away_penalties = $12,
+			winner_team_id = $13,
+			phase = $14,
+			parent_match_id = $15,
+			left_child_match_id = $16,
+			right_child_match_id = $17,
+			updated_at = $18
+		WHERE id = $19
+	`
+	commandTag, err := tx.Exec(ctx, query,
+		match.HomeTeamID,
+		match.AwayTeamID,
+		match.MatchDate,
+		match.Status,
+		match.ScoreHome,
+		match.ScoreAway,
+		match.HasExtraTime,
+		match.ScoreHomeExtraTime,
+		match.ScoreAwayExtraTime,
+		match.HasPenalties,
+		match.ScoreHomePenalties,
+		match.ScoreAwayPenalties,
+		match.WinnerTeamID,
+		match.Phase,
+		match.ParentMatchID,
+		match.LeftChildMatchID,
+		match.RightChildMatchID,
+		time.Now(),
+		match.ID,
+	)
+	if err != nil {
+		return err
+	}
+
+	if commandTag.RowsAffected() != 1 {
+		return errors.New("no rows were updated")
+	}
+
+	return nil
+}
