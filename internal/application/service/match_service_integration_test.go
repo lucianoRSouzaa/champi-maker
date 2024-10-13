@@ -55,14 +55,17 @@ func TestEndToEndChampionshipCreation(t *testing.T) {
 	teamRepo := repository.NewTeamRepositoryPg(pool)
 	matchRepo := repository.NewMatchRepositoryPg(pool)
 	userRepo := repository.NewUserRepositoryPg(pool)
+	statisticsRepo := repository.NewStatisticsRepositoryPg(pool)
 
 	// Inicializar produtor de mensagens
 	messagePublisher, err := messaging.NewRabbitMQPublisher(rabbitConn, "championship_created_test")
 	require.NoError(t, err)
 
 	// Inicializar serviços
+	statisticsService := service.NewStatisticsService(statisticsRepo, championshipRepo, teamRepo)
+
 	championshipService := service.NewChampionshipService(championshipRepo, teamRepo, messagePublisher)
-	matchService := service.NewMatchService(matchRepo, championshipRepo, teamRepo)
+	matchService := service.NewMatchService(matchRepo, championshipRepo, teamRepo, statisticsService)
 
 	// Iniciar consumidor
 	rabbitMQConsumer, err := messaging.NewRabbitMQConsumer(rabbitConn, "championship_created_test", matchService)
@@ -175,12 +178,15 @@ func TestEndToEndLeagueChampionshipCreation(t *testing.T) {
 	teamRepo := repository.NewTeamRepositoryPg(pool)
 	matchRepo := repository.NewMatchRepositoryPg(pool)
 	userRepo := repository.NewUserRepositoryPg(pool)
+	statisticsRepo := repository.NewStatisticsRepositoryPg(pool)
 
 	messagePublisher, err := messaging.NewRabbitMQPublisher(rabbitConn, "championship_created_test")
 	require.NoError(t, err)
 
+	statisticsService := service.NewStatisticsService(statisticsRepo, championshipRepo, teamRepo)
+
 	championshipService := service.NewChampionshipService(championshipRepo, teamRepo, messagePublisher)
-	matchService := service.NewMatchService(matchRepo, championshipRepo, teamRepo)
+	matchService := service.NewMatchService(matchRepo, championshipRepo, teamRepo, statisticsService)
 
 	rabbitMQConsumer, err := messaging.NewRabbitMQConsumer(rabbitConn, "championship_created_test", matchService)
 	require.NoError(t, err)
@@ -324,12 +330,15 @@ func TestEndToEndCupChampionshipRandomDraw(t *testing.T) {
 	teamRepo := repository.NewTeamRepositoryPg(pool)
 	matchRepo := repository.NewMatchRepositoryPg(pool)
 	userRepo := repository.NewUserRepositoryPg(pool)
+	statisticsRepo := repository.NewStatisticsRepositoryPg(pool)
 
 	messagePublisher, err := messaging.NewRabbitMQPublisher(rabbitConn, "championship_created_test")
 	require.NoError(t, err)
 
+	statisticsService := service.NewStatisticsService(statisticsRepo, championshipRepo, teamRepo)
+
 	championshipService := service.NewChampionshipService(championshipRepo, teamRepo, messagePublisher)
-	matchService := service.NewMatchService(matchRepo, championshipRepo, teamRepo)
+	matchService := service.NewMatchService(matchRepo, championshipRepo, teamRepo, statisticsService)
 
 	rabbitMQConsumer, err := messaging.NewRabbitMQConsumer(rabbitConn, "championship_created_test", matchService)
 	require.NoError(t, err)
@@ -437,14 +446,16 @@ func TestEndToEndLeagueChampionshipWithEightTeams(t *testing.T) {
 	teamRepo := repository.NewTeamRepositoryPg(pool)
 	matchRepo := repository.NewMatchRepositoryPg(pool)
 	userRepo := repository.NewUserRepositoryPg(pool)
+	statisticsRepo := repository.NewStatisticsRepositoryPg(pool)
 
 	// Inicializar produtor de mensagens
 	messagePublisher, err := messaging.NewRabbitMQPublisher(rabbitConn, "championship_created_test")
 	require.NoError(t, err)
 
 	// Inicializar serviços
+	statisticsService := service.NewStatisticsService(statisticsRepo, championshipRepo, teamRepo)
 	championshipService := service.NewChampionshipService(championshipRepo, teamRepo, messagePublisher)
-	matchService := service.NewMatchService(matchRepo, championshipRepo, teamRepo)
+	matchService := service.NewMatchService(matchRepo, championshipRepo, teamRepo, statisticsService)
 
 	// Iniciar consumidor
 	rabbitMQConsumer, err := messaging.NewRabbitMQConsumer(rabbitConn, "championship_created_test", matchService)
@@ -544,14 +555,16 @@ func TestEndToEndCupChampionshipWithEightTeams(t *testing.T) {
 	teamRepo := repository.NewTeamRepositoryPg(pool)
 	matchRepo := repository.NewMatchRepositoryPg(pool)
 	userRepo := repository.NewUserRepositoryPg(pool)
+	statisticsRepo := repository.NewStatisticsRepositoryPg(pool)
 
 	// Inicializar produtor de mensagens
 	messagePublisher, err := messaging.NewRabbitMQPublisher(rabbitConn, "championship_created_test")
 	require.NoError(t, err)
 
 	// Inicializar serviços
+	statisticsService := service.NewStatisticsService(statisticsRepo, championshipRepo, teamRepo)
 	championshipService := service.NewChampionshipService(championshipRepo, teamRepo, messagePublisher)
-	matchService := service.NewMatchService(matchRepo, championshipRepo, teamRepo)
+	matchService := service.NewMatchService(matchRepo, championshipRepo, teamRepo, statisticsService)
 
 	// Iniciar consumidor
 	rabbitMQConsumer, err := messaging.NewRabbitMQConsumer(rabbitConn, "championship_created_test", matchService)
@@ -651,14 +664,16 @@ func TestEndToEndChampionshipCreationWithInvalidData(t *testing.T) {
 	teamRepo := repository.NewTeamRepositoryPg(pool)
 	matchRepo := repository.NewMatchRepositoryPg(pool)
 	userRepo := repository.NewUserRepositoryPg(pool)
+	statisticsRepo := repository.NewStatisticsRepositoryPg(pool)
 
 	// Inicializar produtor de mensagens
 	messagePublisher, err := messaging.NewRabbitMQPublisher(rabbitConn, "championship_created_test")
 	require.NoError(t, err)
 
 	// Inicializar serviços
+	statisticsService := service.NewStatisticsService(statisticsRepo, championshipRepo, teamRepo)
 	championshipService := service.NewChampionshipService(championshipRepo, teamRepo, messagePublisher)
-	matchService := service.NewMatchService(matchRepo, championshipRepo, teamRepo)
+	matchService := service.NewMatchService(matchRepo, championshipRepo, teamRepo, statisticsService)
 
 	// Iniciar consumidor
 	rabbitMQConsumer, err := messaging.NewRabbitMQConsumer(rabbitConn, "championship_created_test", matchService)
