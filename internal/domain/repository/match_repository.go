@@ -17,4 +17,6 @@ type MatchRepository interface {
 	GetByPhase(ctx context.Context, championshipID uuid.UUID, phase int) ([]*entity.Match, error)
 	BeginTx(ctx context.Context) (pgx.Tx, error)
 	CreateWithTx(ctx context.Context, tx pgx.Tx, match *entity.Match) error
+	GetByIDWithTx(ctx context.Context, tx pgx.Tx, id uuid.UUID) (*entity.Match, error)
+	UpdateWithTx(ctx context.Context, tx pgx.Tx, match *entity.Match) error
 }
