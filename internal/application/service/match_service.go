@@ -4,6 +4,7 @@ import (
 	"champi-maker/internal/application"
 	"champi-maker/internal/domain/entity"
 	"champi-maker/internal/domain/repository"
+	"errors"
 	"math"
 	"math/rand/v2"
 	"time"
@@ -12,11 +13,25 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
+
+type MatchResultUpdate struct {
+	ScoreHome          int
+	ScoreAway          int
+	HasExtraTime       bool
+	ScoreHomeExtraTime int
+	ScoreAwayExtraTime int
+	HasPenalties       bool
+	ScoreHomePenalties int
+	ScoreAwayPenalties int
+}
 
 type MatchService interface {
 	GenerateMatches(ctx context.Context, message application.ChampionshipCreatedMessage) error
-	// Outros métodos conforme necessário
+	UpdateMatchResult(ctx context.Context, matchID uuid.UUID, result MatchResultUpdate) error
+	GetMatchByID(ctx context.Context, matchID uuid.UUID) (*entity.Match, error)
+	ListMatchesByChampionship(ctx context.Context, championshipID uuid.UUID) ([]*entity.Match, error)
 }
 
 type matchService struct {
@@ -201,5 +216,148 @@ func (s *matchService) generateCupMatches(ctx context.Context, championship *ent
 		matches = append(matches, phaseMatches...)
 	}
 
+	return matches, nil
+}
+
+func (s *matchService) UpdateMatchResult(ctx context.Context, matchID uuid.UUID, result MatchResultUpdate) error {
+	// Iniciar transação
+	tx, err := s.matchRepo.BeginTx(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback(ctx)
+		} else {
+			err = tx.Commit(ctx)
+		}
+	}()
+
+	match, err := s.matchRepo.GetByIDWithTx(ctx, tx, matchID)
+	if err != nil {
+		return err
+	}
+	if match == nil {
+		return fmt.Errorf("partida com ID %s não encontrada", matchID)
+	}
+
+	// Atualizar o resultado da partida
+	match.ScoreHome = result.ScoreHome
+	match.ScoreAway = result.ScoreAway
+	match.HasExtraTime = result.HasExtraTime
+	if result.HasExtraTime {
+		match.ScoreHomeExtraTime = result.ScoreHomeExtraTime
+		match.ScoreAwayExtraTime = result.ScoreAwayExtraTime
+	}
+	match.HasPenalties = result.HasPenalties
+	if result.HasPenalties {
+		match.ScoreHomePenalties = result.ScoreHomePenalties
+		match.ScoreAwayPenalties = result.ScoreAwayPenalties
+	}
+	match.Status = entity.MatchStatusFinished
+	match.UpdatedAt = time.Now()
+
+	// Determinar o time vencedor
+	winnerTeamID, err := s.determineWinner(match)
+	if err != nil {
+		return err
+	}
+	match.WinnerTeamID = winnerTeamID
+
+	// Atualizar a partida no banco de dados
+	if err := s.matchRepo.UpdateWithTx(ctx, tx, match); err != nil {
+		return err
+	}
+
+	// Propagar o vencedor para a próxima fase (apenas para campeonatos do tipo Copa)
+	championship, err := s.championshipRepo.GetByID(ctx, match.ChampionshipID)
+	if err != nil {
+		return err
+	}
+	if championship.Type == entity.ChampionshipTypeCup && match.ParentMatchID != nil {
+		err = s.propagateWinner(ctx, tx, *match.ParentMatchID, *winnerTeamID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *matchService) determineWinner(match *entity.Match) (*uuid.UUID, error) {
+	var homeGoals, awayGoals int
+
+	homeGoals = match.ScoreHome
+	awayGoals = match.ScoreAway
+
+	if match.HasExtraTime {
+		homeGoals += match.ScoreHomeExtraTime
+		awayGoals += match.ScoreAwayExtraTime
+	}
+
+	if homeGoals > awayGoals {
+		return match.HomeTeamID, nil
+	} else if awayGoals > homeGoals {
+		return match.AwayTeamID, nil
+	} else {
+		if match.HasPenalties {
+			if match.ScoreHomePenalties > match.ScoreAwayPenalties {
+				return match.HomeTeamID, nil
+			} else if match.ScoreAwayPenalties > match.ScoreHomePenalties {
+				return match.AwayTeamID, nil
+			} else {
+				return nil, errors.New("empate nas penalidades não é permitido")
+			}
+
+		} else {
+			return nil, errors.New("partida terminou empatada e não há penalidades")
+		}
+	}
+}
+
+func (s *matchService) propagateWinner(ctx context.Context, tx pgx.Tx, parentMatchID uuid.UUID, winnerTeamID uuid.UUID) error {
+	parentMatch, err := s.matchRepo.GetByIDWithTx(ctx, tx, parentMatchID)
+	if err != nil {
+		return err
+	}
+	if parentMatch == nil {
+		return fmt.Errorf("partida pai com ID %s não encontrada", parentMatchID)
+	}
+
+	// Determinar se o vencedor vai para o lado esquerdo ou direito
+	if parentMatch.LeftChildMatchID != nil && *parentMatch.LeftChildMatchID == parentMatchID {
+		parentMatch.HomeTeamID = &winnerTeamID
+	} else if parentMatch.RightChildMatchID != nil && *parentMatch.RightChildMatchID == parentMatchID {
+		parentMatch.AwayTeamID = &winnerTeamID
+	} else {
+		return fmt.Errorf("partida com ID %s não é filha da partida com ID %s", parentMatchID, parentMatch.ID)
+	}
+
+	parentMatch.UpdatedAt = time.Now()
+
+	// Atualizar a partida pai
+	if err := s.matchRepo.UpdateWithTx(ctx, tx, parentMatch); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *matchService) GetMatchByID(ctx context.Context, matchID uuid.UUID) (*entity.Match, error) {
+	match, err := s.matchRepo.GetByID(ctx, matchID)
+	if err != nil {
+		return nil, err
+	}
+	if match == nil {
+		return nil, fmt.Errorf("partida com ID %s não encontrada", matchID)
+	}
+	return match, nil
+}
+
+func (s *matchService) ListMatchesByChampionship(ctx context.Context, championshipID uuid.UUID) ([]*entity.Match, error) {
+	matches, err := s.matchRepo.GetByChampionshipID(ctx, championshipID)
+	if err != nil {
+		return nil, err
+	}
 	return matches, nil
 }
