@@ -220,3 +220,108 @@ func (r *statisticsRepositoryPg) ListByChampionship(ctx context.Context, champio
 
 	return statsList, nil
 }
+
+func (r *statisticsRepositoryPg) BeginTx(ctx context.Context) (pgx.Tx, error) {
+	return r.pool.Begin(ctx)
+}
+
+func (r *statisticsRepositoryPg) CreateWithTx(ctx context.Context, tx pgx.Tx, stats *entity.Statistics) error {
+	query := `
+        INSERT INTO statistics (
+            id, championship_id, team_id, matches_played, wins, draws, losses,
+            goals_for, goals_against, goal_difference, points, created_at, updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7,
+                $8, $9, $10, $11, $12, $13)
+    `
+	_, err := tx.Exec(ctx, query,
+		stats.ID,
+		stats.ChampionshipID,
+		stats.TeamID,
+		stats.MatchesPlayed,
+		stats.Wins,
+		stats.Draws,
+		stats.Losses,
+		stats.GoalsFor,
+		stats.GoalsAgainst,
+		stats.GoalDifference,
+		stats.Points,
+		stats.CreatedAt,
+		stats.UpdatedAt,
+	)
+	return err
+}
+
+func (r *statisticsRepositoryPg) GetByChampionshipAndTeamWithTx(ctx context.Context, tx pgx.Tx, championshipID, teamID uuid.UUID) (*entity.Statistics, error) {
+	query := `
+        SELECT
+            id, championship_id, team_id, matches_played, wins, draws, losses,
+            goals_for, goals_against, goal_difference, points, created_at, updated_at
+        FROM statistics
+        WHERE championship_id = $1 AND team_id = $2
+    `
+	row := tx.QueryRow(ctx, query, championshipID, teamID)
+
+	var stats entity.Statistics
+	err := row.Scan(
+		&stats.ID,
+		&stats.ChampionshipID,
+		&stats.TeamID,
+		&stats.MatchesPlayed,
+		&stats.Wins,
+		&stats.Draws,
+		&stats.Losses,
+		&stats.GoalsFor,
+		&stats.GoalsAgainst,
+		&stats.GoalDifference,
+		&stats.Points,
+		&stats.CreatedAt,
+		&stats.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil // Estatística não encontrada
+		}
+		return nil, err
+	}
+
+	return &stats, nil
+}
+
+func (r *statisticsRepositoryPg) UpdateWithTx(ctx context.Context, tx pgx.Tx, stats *entity.Statistics) error {
+	query := `
+        UPDATE statistics
+        SET
+            matches_played = $1,
+            wins = $2,
+            draws = $3,
+            losses = $4,
+            goals_for = $5,
+            goals_against = $6,
+            goal_difference = $7,
+            points = $8,
+            updated_at = $9
+        WHERE id = $10
+    `
+	commandTag, err := tx.Exec(ctx, query,
+		stats.MatchesPlayed,
+		stats.Wins,
+		stats.Draws,
+		stats.Losses,
+		stats.GoalsFor,
+		stats.GoalsAgainst,
+		stats.GoalDifference,
+		stats.Points,
+		time.Now(),
+		stats.ID,
+	)
+	if err != nil {
+		return err
+	}
+
+	if commandTag.RowsAffected() != 1 {
+		return errors.New("no rows were updated")
+	}
+
+	return nil
+}
