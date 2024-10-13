@@ -35,20 +35,23 @@ type MatchService interface {
 }
 
 type matchService struct {
-	matchRepo        repository.MatchRepository
-	championshipRepo repository.ChampionshipRepository
-	teamRepo         repository.TeamRepository
+	matchRepo         repository.MatchRepository
+	championshipRepo  repository.ChampionshipRepository
+	teamRepo          repository.TeamRepository
+	statisticsService StatisticsService
 }
 
 func NewMatchService(
 	matchRepo repository.MatchRepository,
 	championshipRepo repository.ChampionshipRepository,
 	teamRepo repository.TeamRepository,
+	statisticsService StatisticsService,
 ) MatchService {
 	return &matchService{
-		matchRepo:        matchRepo,
-		championshipRepo: championshipRepo,
-		teamRepo:         teamRepo,
+		matchRepo:         matchRepo,
+		championshipRepo:  championshipRepo,
+		teamRepo:          teamRepo,
+		statisticsService: statisticsService,
 	}
 }
 
@@ -277,6 +280,18 @@ func (s *matchService) UpdateMatchResult(ctx context.Context, matchID uuid.UUID,
 	if championship.Type == entity.ChampionshipTypeCup && match.ParentMatchID != nil {
 		err = s.propagateWinner(ctx, tx, *match.ParentMatchID, *winnerTeamID)
 		if err != nil {
+			return err
+		}
+	}
+
+	// Commit da transação de partida
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	// Atualizar estatísticas (fora da transação anterior)
+	if championship.Type == entity.ChampionshipTypeLeague {
+		if err := s.statisticsService.UpdateStatisticsAfterMatch(ctx, match); err != nil {
 			return err
 		}
 	}
