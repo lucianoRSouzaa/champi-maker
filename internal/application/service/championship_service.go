@@ -72,21 +72,10 @@ func (s *championshipService) CreateChampionship(ctx context.Context, championsh
 }
 
 func (s *championshipService) GetChampionshipByID(ctx context.Context, id uuid.UUID) (*entity.Championship, error) {
-	championship, err := s.championshipRepo.GetByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	if championship == nil {
-		return nil, fmt.Errorf("championship with ID %s not found", id)
-	}
-	return championship, nil
+	return s.championshipRepo.GetByID(ctx, id)
 }
 
 func (s *championshipService) UpdateChampionship(ctx context.Context, championship *entity.Championship) error {
-	if err := championship.Validate(); err != nil {
-		return err
-	}
-
 	existingChampionship, err := s.championshipRepo.GetByID(ctx, championship.ID)
 	if err != nil {
 		return err
@@ -96,9 +85,13 @@ func (s *championshipService) UpdateChampionship(ctx context.Context, championsh
 	}
 
 	// Atualizar os timestamps
+	championship.CreatedAt = existingChampionship.CreatedAt
 	championship.UpdatedAt = time.Now()
 
-	// Salvar o campeonato no banco de dados
+	if err := championship.Validate(); err != nil {
+		return err
+	}
+
 	if err := s.championshipRepo.Update(ctx, championship); err != nil {
 		return err
 	}
@@ -123,9 +116,5 @@ func (s *championshipService) DeleteChampionship(ctx context.Context, id uuid.UU
 }
 
 func (s *championshipService) ListChampionships(ctx context.Context) ([]*entity.Championship, error) {
-	championships, err := s.championshipRepo.List(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return championships, nil
+	return s.championshipRepo.List(ctx)
 }
