@@ -107,6 +107,16 @@ func (s *userService) UpdateUser(ctx context.Context, user *entity.User) error {
 }
 
 func (s *userService) DeleteUser(ctx context.Context, id uuid.UUID) error {
+	user, err := s.userRepo.GetByID(ctx, id)
+
+	if err != nil {
+		return err
+	}
+
+	if user == nil {
+		return errors.New("usuário não encontrado")
+	}
+
 	if err := s.userRepo.Delete(ctx, id); err != nil {
 		return err
 	}
