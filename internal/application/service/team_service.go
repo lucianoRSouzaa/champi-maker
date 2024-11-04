@@ -72,17 +72,12 @@ func (s *teamService) GetTeamByID(ctx context.Context, teamID uuid.UUID) (*entit
 		return nil, err
 	}
 	if team == nil {
-		return nil, fmt.Errorf("team with ID %s not found", teamID)
+		return nil, nil
 	}
 	return team, nil
 }
 
 func (s *teamService) UpdateTeam(ctx context.Context, team *entity.Team) error {
-	// Validate the team entity
-	if err := team.Validate(); err != nil {
-		return err
-	}
-
 	// Check if the team exists
 	existingTeam, err := s.teamRepo.GetByID(ctx, team.ID)
 	if err != nil {
@@ -94,6 +89,13 @@ func (s *teamService) UpdateTeam(ctx context.Context, team *entity.Team) error {
 
 	// Update timestamps
 	team.UpdatedAt = time.Now()
+	team.UserID = existingTeam.UserID
+	team.CreatedAt = existingTeam.CreatedAt
+
+	// Validate the team entity
+	if err := team.Validate(); err != nil {
+		return err
+	}
 
 	// Update the team in the repository
 	return s.teamRepo.Update(ctx, team)
